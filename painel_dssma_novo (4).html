@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel DSSMA — Pátio</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f4f0;color:#0b0b0b;padding:1.5rem}
+h1{font-size:20px;font-weight:500}
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:12px}
+.top-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.week-sel{display:flex;align-items:center;gap:8px;font-size:13px;color:#52514e}
+.week-sel select{font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid #c3c2b7;background:#fff;color:#0b0b0b;cursor:pointer}
+.btn-update{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;padding:8px 18px;border-radius:10px;border:none;background:#1fc8a0;color:#fff;cursor:pointer;transition:background .15s;white-space:nowrap}
+.btn-update:hover{background:#18b08c}
+.btn-update i{font-size:18px}
+.upload-status{font-size:12px;margin-top:4px;font-weight:500;text-align:right}
+.upload-status.ok{color:#3b6d11}
+.upload-status.err{color:#a32d2d}
+input[type=file]{display:none}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:1.5rem}
+.kpi{background:#efefeb;border-radius:8px;padding:1rem;display:flex;flex-direction:column;gap:4px}
+.kpi-label{font-size:12px;color:#898781}
+.kpi-val{font-size:28px;font-weight:500;color:#0b0b0b;line-height:1}
+.kpi-sub{font-size:11px;color:#52514e}
+.section{margin-bottom:1.5rem}
+.section-title{font-size:12px;font-weight:500;color:#52514e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.chart-wrap{position:relative;width:100%;height:320px;background:#fff;border-radius:12px;border:0.5px solid #e1e0d9;padding:1rem}
+.rank-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:8px}
+.rank-card{background:#efefeb;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px}
+.rank-num{font-size:11px;font-weight:500;color:#898781;width:18px;text-align:center}
+.rank-bar-wrap{flex:1;min-width:0}
+.rank-op{font-size:12px;font-weight:500;color:#0b0b0b;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank-bar-bg{background:#d3d1c7;border-radius:4px;height:6px;overflow:hidden}
+.rank-bar-fill{height:6px;border-radius:4px}
+.rank-pct{font-size:13px;font-weight:500;min-width:38px;text-align:right}
+.pending-controls{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.pending-controls label{font-size:13px;color:#52514e}
+.pending-controls select{font-size:13px;padding:5px 10px;border-radius:8px;border:1px solid #c3c2b7;background:#fff;color:#0b0b0b;cursor:pointer}
+.filter-btn{font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid #c3c2b7;background:#fff;color:#52514e;cursor:pointer;transition:all .15s}
+.filter-btn.active{background:#0b0b0b;color:#fff;border-color:#0b0b0b}
+.pending-wrap{background:#fff;border-radius:12px;border:0.5px solid #e1e0d9;overflow:hidden}
+.pending-table{width:100%;border-collapse:collapse;font-size:13px}
+.pending-table th{text-align:left;font-size:11px;font-weight:500;color:#898781;text-transform:uppercase;letter-spacing:.04em;padding:10px 14px;border-bottom:0.5px solid #e1e0d9;background:#f9f8f5}
+.pending-table td{padding:9px 14px;border-bottom:0.5px solid #e1e0d9;vertical-align:middle;color:#0b0b0b}
+.pending-table tr:last-child td{border-bottom:none}
+.pending-table tr:hover td{background:#f5f4f0}
+.op-badge{display:inline-block;font-size:12px;font-weight:500;background:#e6f1fb;color:#185fa5;border-radius:4px;padding:3px 8px}
+.status-done{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;background:#eaf3de;color:#3b6d11;border-radius:6px;padding:3px 10px}
+.status-pend{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;background:#fcebeb;color:#a32d2d;border-radius:6px;padding:3px 10px}
+.no-rows{padding:16px 14px;font-size:13px;color:#898781;text-align:center}
+footer{margin-top:2rem;font-size:11px;color:#898781;text-align:center}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1>Painel DSSMA — Pátio</h1>
+  <div class="top-right">
+    <div class="week-sel">
+      <i class="ti ti-calendar"></i>
+      Semana:
+      <select id="weekSel"></select>
+    </div>
+    <div>
+      <button class="btn-update" onclick="loadData()">
+        <i class="ti ti-refresh"></i> Atualizar DSSMA
+      </button>
+      <div class="upload-status" id="uploadStatus"></div>
+    </div>
+  </div>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi"><span class="kpi-label">Realização geral</span><span class="kpi-val" id="kpiPct">—</span><span class="kpi-sub">média das operações</span></div>
+  <div class="kpi"><span class="kpi-label">Total de diálogos</span><span class="kpi-val" id="kpiDialogs">—</span><span class="kpi-sub">registros na semana</span></div>
+  <div class="kpi"><span class="kpi-label">HHT total (min)</span><span class="kpi-val" id="kpiHHT">—</span><span class="kpi-sub">15 min × 8 HC × diálogos</span></div>
+  <div class="kpi"><span class="kpi-label">Operações 100%</span><span class="kpi-val" id="kpiOps100">—</span><span class="kpi-sub">sem pendências na semana</span></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Realização por operação</div>
+  <div class="chart-wrap"><canvas id="barChart" role="img" aria-label="Realização por operação"></canvas></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Ranking das operações</div>
+  <div class="rank-grid" id="rankGrid"></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Quadro de líderes</div>
+  <div class="pending-controls">
+    <label>Operação:</label>
+    <select id="opFilter"><option value="">Todas</option></select>
+    <button class="filter-btn active" id="btnTodos" onclick="setFilter('todos')">Todos</button>
+    <button class="filter-btn" id="btnPendente" onclick="setFilter('pendente')">Pendente</button>
+    <button class="filter-btn" id="btnRealizado" onclick="setFilter('realizado')">Realizado</button>
+  </div>
+  <div class="pending-wrap">
+    <table class="pending-table">
+      <thead><tr><th>Operação</th><th>Líder</th><th>Status na semana</th></tr></thead>
+      <tbody id="pendingBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<footer>Painel DSSMA — Pátio &nbsp;|&nbsp; Meta: 100% &nbsp;|&nbsp; 15 min × 8 HC por diálogo</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ============================================================
+// COLE AQUI A URL DO SEU APPS SCRIPT (termina em /exec)
+// ============================================================
+const APPS_SCRIPT_URL = 'https://script.google.com/a/macros/shopee.com/s/AKfycbwzyRVktnWDo2Jbel9K_51Js6VxUWovkc-gI9_Zh-wuvWEis1xlU-NQqsKKcVexSteChQ/exec';
+// ============================================================
+
+const DEFAULT_OPS = {
+  'SOC-RJ2':{leaders:['Luciana Lopes da Silva Oliveira','Luiz Antonio de Lima Rosa Júnior','Claudio Rogério Moreira dos Santos'],weeks:{W13:{s:['R','R','R']},W14:{s:['R','R','R']},W15:{s:['R','R','R']},W16:{s:['R','R','R']},W17:{s:['NR','R','R']},W18:{s:['R','R','R']},W19:{s:['R','R','R']},W20:{s:['R','R','R']},W21:{s:['R','R','R']},W22:{s:['R','R','R']},W23:{s:['R','R','R']},W24:{s:['R','R','R']},W25:{s:['R','R','R']},W26:{s:['R','R','R']}}},
+  'SOC-SP2':{leaders:['Gisele Silva','Eduardo Barros Dos Santos','Eduardo Jacometti'],weeks:{W13:{s:['R','R','NR']},W14:{s:['R','R','R']},W15:{s:['R','NR','NR']},W16:{s:['R','R',null]},W17:{s:['R','R',null]},W18:{s:['R','R',null]},W19:{s:['R','R','R']},W20:{s:['R','R','R']},W21:{s:['R','NR','R']},W22:{s:['R','NR','R']},W23:{s:['R','R','R']},W24:{s:['NR','R','R']},W25:{s:['R','R','NR']},W26:{s:['R','R','R']}}},
+  'SOC-SP5':{leaders:['Yago Felix','Rafael Almeida'],weeks:{W13:{s:['NR','NR']},W14:{s:['R','R']},W15:{s:['R','R']},W16:{s:['R','R']},W17:{s:['R','R']},W18:{s:['R','R']},W19:{s:['R','R']},W20:{s:['R','R']},W21:{s:['R','R']},W22:{s:['R','R']},W23:{s:['R','R']},W24:{s:['R','R']},W25:{s:['NR','NR']},W26:{s:['R','R']}}},
+  'SOC-SP6':{leaders:['Ralph Silva','Mirely Valerya','Geovanny Gonçalves'],weeks:{W13:{s:['NR','R','R']},W14:{s:['R','R','R']},W15:{s:['R','R','R']},W16:{s:['R','R','R']},W17:{s:['R','R','R']},W18:{s:['R','R','R']},W19:{s:['R','R','R']},W20:{s:['R','R','R']},W21:{s:['R','R','R']},W22:{s:['R','R','R']},W23:{s:['R','R','R']},W24:{s:['R','R','R']},W25:{s:['R','NR','R']},W26:{s:['R','R','R']}}},
+  'SOC-SP7':{leaders:['Carlos Dalsin','Luiz A. Ferreira','Paulo Francisco'],weeks:{W13:{s:['R','R','NR']},W14:{s:['R','NR','R']},W15:{s:['R','R','NR']},W16:{s:['R','R','NR']},W17:{s:['R','R','NR']},W18:{s:['NR','R','R']},W19:{s:['NR','R','R']},W20:{s:['R','R','NR']},W21:{s:['R','R','R']},W22:{s:['R','R','R']},W23:{s:['R','R','R']},W24:{s:['NR','R','NR']},W25:{s:['R','R','R']},W26:{s:['R','R','R']}}},
+  'SOC-SP8':{leaders:['Raphael Castro','Renan Gomes','Jefferson Ivo','Ed Fenix'],weeks:{W13:{s:['R','R','NR','R']},W14:{s:['R','NR','R','R']},W15:{s:['R','R','R','R']},W16:{s:['R','R','R','R']},W17:{s:['R','R','R','R']},W18:{s:['R','R','R','R']},W19:{s:['R','R','R','R']},W20:{s:['R','R','R','R']},W21:{s:['R','R','R','R']},W22:{s:['NR','R','R','R']},W23:{s:['R','R','NR','R']},W24:{s:['R','R','NR','R']},W25:{s:['R','R','NR','R']},W26:{s:['R','R','NR','R']}}},
+  'SOC-SP25':{leaders:['Felix Santos','Guilherme Gonçalves de Oliveira','Fabio Serafim'],weeks:{W13:{s:['R','R','NR']},W14:{s:['R','R','R']},W15:{s:['R','R','R']},W16:{s:['R','R','R']},W17:{s:['R','R','NR']},W18:{s:['R','R','R']},W19:{s:['R','R','R']},W20:{s:['R','R','R']},W21:{s:['R','R','R']},W22:{s:['R','R','R']},W23:{s:['R','R','R']},W24:{s:['R','R','R']},W25:{s:['R','R','R']},W26:{s:['R','R','R']}}},
+  'SOC-BA2':{leaders:['Rafhael Cabral','Marcos Placido','Caio Sandes'],weeks:{W13:{s:['-','-','-']},W14:{s:['-','-','-']},W15:{s:['-','-','-']},W16:{s:['-','-','-']},W17:{s:['-','-','-']},W18:{s:['R','R','R']},W19:{s:['R','R','NR']},W20:{s:['NR','R','R']},W21:{s:['NR','R','NR']},W22:{s:['NR','R','NR']},W23:{s:['NR','NR','NR']},W24:{s:['NR','R','NR']},W25:{s:[null,'R','NR']},W26:{s:['NR','R','NR']}}},
+  'SOC-PE2':{leaders:['Jan Santos','Almir Gomes','Diego Enrique'],weeks:{W13:{s:['-','-','-']},W14:{s:['-','-','-']},W15:{s:['-','-','-']},W16:{s:['-','-','-']},W17:{s:['-','-','-']},W18:{s:['R','NR','NR']},W19:{s:['R','NR','R']},W20:{s:['R','R','NR']},W21:{s:['NR','R','R']},W22:{s:['R','R','R']},W23:{s:['R','R','NR']},W24:{s:['R','R','NR']},W25:{s:['R','R','NR']},W26:{s:['R','R','R']}}},
+  'SOC-GO2':{leaders:['Leonardo Guimarães','José Ricardo','Cristiano Rodrigues'],weeks:{W13:{s:['-','-','-']},W14:{s:['-','-','-']},W15:{s:['-','-','-']},W16:{s:['-','-','-']},W17:{s:['-','-','-']},W18:{s:['NR','NR','R']},W19:{s:['NR','NR','R']},W20:{s:['R','R','R']},W21:{s:['R','R','R']},W22:{s:['R','R','R']},W23:{s:['R','R','R']},W24:{s:[null,'R','R']},W25:{s:[null,'R','R']},W26:{s:[null,'R','R']}}},
+  'SOC-PR1':{leaders:['Marcos Pires','Sonny Gauer'],weeks:{W13:{s:['-','-']},W14:{s:['-','-']},W15:{s:['-','-']},W16:{s:['-','-']},W17:{s:['-','-']},W18:{s:['R','R']},W19:{s:['R','R']},W20:{s:['R','R']},W21:{s:['R','R']},W22:{s:['R','R']},W23:{s:['R','R']},W24:{s:['R','R']},W25:{s:['NR','R']},W26:{s:['NR','R']}}},
+  'SOC-RJ1':{leaders:['Iago Alves','Carlos Bezerra','Joao Cruz'],weeks:{W13:{s:['-','-','-']},W14:{s:['-','-','-']},W15:{s:['-','-','-']},W16:{s:['-','-','-']},W17:{s:['-','-','-']},W18:{s:['NR','NR','NR']},W19:{s:['NR','NR','NR']},W20:{s:['R','R','R']},W21:{s:['R','R','R']},W22:{s:['NR','R','R']},W23:{s:['R','R','R']},W24:{s:['R','R','R']},W25:{s:['R','R','R']},W26:{s:['R','R','R']}}},
+  'SOC-ES2':{leaders:['Carlos Santos','Carlos Ribeiro'],weeks:{W13:{s:['NR','NR']},W14:{s:['NR','NR']},W15:{s:['NR','NR']},W16:{s:['NR','NR']},W17:{s:['NR','NR']},W18:{s:['NR','NR']},W19:{s:['NR','NR']},W20:{s:['NR','NR']},W21:{s:['NR','NR']},W22:{s:['NR','NR']},W23:{s:['NR','NR']},W24:{s:['R','R']},W25:{s:['NR','NR']},W26:{s:['R','R']}}}
+};
+
+let OPS = JSON.parse(JSON.stringify(DEFAULT_OPS));
+const OP_SHEETS = ['RJ2','SP2','SP5','SP6','SP7','SP8','SP25','BA2','PE2','GO2','PR1','RJ1','ES1','RJ4'];
+
+function parseStatus(v) {
+  if (v === null || v === undefined) return null;
+  if (typeof v === 'string') {
+    const vt = v.trim().toUpperCase();
+    if (vt === 'REALIZADO') return 'R';
+    if (vt === 'NÃO REALIZADO' || vt === 'NAO REALIZADO') return 'NR';
+    if (vt === '-') return '-';
+  }
+  return null;
+}
+
+async function loadData() {
+  const st = document.getElementById('uploadStatus');
+  st.className = 'upload-status';
+  st.textContent = 'Carregando…';
+
+  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'COLE_SUA_URL_AQUI') {
+    st.className = 'upload-status err';
+    st.textContent = 'Configure a URL do Apps Script no código.';
+    return;
+  }
+
+  try {
+    const resp = await fetch(APPS_SCRIPT_URL, { credentials: 'include' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const newOps = await resp.json();
+    const loaded = Object.keys(newOps).length;
+    if (loaded === 0) throw new Error('Nenhuma operação encontrada');
+    OPS = newOps;
+
+    const allW = getAllWeeks();
+    const sel = document.getElementById('weekSel');
+    sel.innerHTML = '';
+    allW.forEach(w => { const o = document.createElement('option'); o.value = w; o.textContent = w; sel.appendChild(o); });
+    sel.value = allW[allW.length - 1];
+    updateOpFilter();
+    render(sel.value);
+
+    st.className = 'upload-status ok';
+    st.textContent = '✓ Atualizado! ' + loaded + ' operações carregadas.';
+  } catch(err) {
+    st.className = 'upload-status err';
+    st.textContent = 'Erro: ' + err.message;
+  }
+}
+
+function isActive(s) { return s !== '-' && s !== null; }
+function isDone(s) { return s === 'R'; }
+
+function getAllWeeks() {
+  const set = new Set();
+  Object.values(OPS).forEach(op => Object.keys(op.weeks).forEach(w => set.add(w)));
+  return Array.from(set).sort((a,b) => parseInt(a.slice(1)) - parseInt(b.slice(1)));
+}
+
+function calcPct(op, week) {
+  const d = OPS[op].weeks[week]; if (!d) return null;
+  const active = d.s.filter(s => isActive(s)); if (!active.length) return null;
+  return Math.round(active.filter(s => isDone(s)).length / active.length * 100);
+}
+
+function countDone(op, week) {
+  const d = OPS[op].weeks[week]; if (!d) return 0;
+  return d.s.filter(s => isDone(s)).length;
+}
+
+function updateOpFilter() {
+  const opFilter = document.getElementById('opFilter');
+  opFilter.innerHTML = '<option value="">Todas</option>';
+  Object.keys(OPS).forEach(op => { const o = document.createElement('option'); o.value = op; o.textContent = op.replace('SOC-',''); opFilter.appendChild(o); });
+}
+
+// Init com dados default, depois carrega da API automaticamente
+const allWeeksInit = getAllWeeks();
+const selInit = document.getElementById('weekSel');
+allWeeksInit.forEach(w => { const o = document.createElement('option'); o.value = w; o.textContent = w; selInit.appendChild(o); });
+selInit.value = 'W26';
+updateOpFilter();
+render('W26');
+
+// Carrega dados atualizados automaticamente ao abrir a página
+loadData();
+
+let chart = null;
+let currentFilter = 'todos';
+function setFilter(f) {
+  currentFilter = f;
+  ['btnTodos','btnPendente','btnRealizado'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById(f==='todos'?'btnTodos':f==='pendente'?'btnPendente':'btnRealizado').classList.add('active');
+  renderPending(document.getElementById('weekSel').value);
+}
+
+function renderPending(week) {
+  const opSel = document.getElementById('opFilter').value;
+  const body = document.getElementById('pendingBody');
+  const rows = [];
+  Object.keys(OPS).forEach(op => {
+    if (opSel && op !== opSel) return;
+    OPS[op].leaders.forEach((leader, idx) => {
+      const d = OPS[op].weeks[week]; if (!d) return;
+      const s = d.s[idx]; if (!isActive(s)) return;
+      const done = isDone(s);
+      if (currentFilter === 'pendente' && done) return;
+      if (currentFilter === 'realizado' && !done) return;
+      rows.push({op, leader, done});
+    });
+  });
+  if (rows.length === 0) { body.innerHTML = `<tr><td colspan="3" class="no-rows">Nenhum registro para esse filtro.</td></tr>`; return; }
+  body.innerHTML = rows.map(r => `<tr>
+    <td><span class="op-badge">${r.op.replace('SOC-','')}</span></td>
+    <td>${r.leader}</td>
+    <td>${r.done
+      ? '<span class="status-done"><i class="ti ti-circle-check"></i> Realizado</span>'
+      : '<span class="status-pend"><i class="ti ti-alert-circle"></i> Pendente</span>'}</td>
+  </tr>`).join('');
+}
+
+Chart.register({
+  id:'inlinePct',
+  afterDatasetsDraw(chart) {
+    const {ctx} = chart;
+    chart.data.datasets.forEach((ds, i) => {
+      chart.getDatasetMeta(i).data.forEach((bar, idx) => {
+        const val = ds.data[idx];
+        if (val === null || val === undefined) return;
+        const {x, y, width, height} = bar.getProps(['x','y','width','height'], true);
+        if (height < 18) return;
+        ctx.save();
+        ctx.fillStyle = '#fff';
+        ctx.font = '500 12px -apple-system,sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(val + '%', x, y + height / 2);
+        ctx.restore();
+      });
+    });
+  }
+});
+
+
+function render(week) {
+  const activeOps = Object.keys(OPS).filter(op => {
+    const d = OPS[op].weeks[week]; return d && d.s.some(s => isActive(s));
+  });
+  let totalDialogs = 0, pctSum = 0, ops100 = 0;
+  activeOps.forEach(op => {
+    totalDialogs += countDone(op, week);
+    const pct = calcPct(op, week);
+    if (pct !== null) { pctSum += pct; if (pct === 100) ops100++; }
+  });
+  const avgPct = activeOps.length ? Math.round(pctSum / activeOps.length) : 0;
+  document.getElementById('kpiPct').textContent = avgPct + '%';
+  document.getElementById('kpiDialogs').textContent = totalDialogs;
+  document.getElementById('kpiHHT').textContent = (totalDialogs * 15 * 8).toLocaleString('pt-BR');
+  document.getElementById('kpiOps100').textContent = ops100 + '/' + activeOps.length;
+
+  const sorted = [...activeOps].sort((a,b) => (calcPct(b,week)||0) - (calcPct(a,week)||0));
+  const labels = sorted.map(op => op.replace('SOC-',''));
+  const values = sorted.map(op => calcPct(op, week) ?? 0);
+  const colors = values.map(v => v === 100 ? '#1baf7a' : v >= 60 ? '#2a78d6' : '#e34948');
+
+  if (chart) chart.destroy();
+  const ctx = document.getElementById('barChart').getContext('2d');
+  chart = new Chart(ctx, {
+    type: 'bar',
+    data: {labels, datasets: [{label:'Realização (%)', data:values, backgroundColor:colors, borderRadius:4, borderSkipped:false}]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {legend:{display:false}, tooltip:{callbacks:{label:ctx=>ctx.raw+'%'}}},
+      scales: {
+        y: {min:0, max:100, ticks:{callback:v=>v+'%',color:'#898781',font:{size:11}}, grid:{color:'rgba(136,135,128,0.15)'}, border:{display:false}},
+        x: {ticks:{color:'#898781',font:{size:11},autoSkip:false}, grid:{display:false}, border:{display:false}}
+      }
+    }
+  });
+
+  const rankGrid = document.getElementById('rankGrid');
+  rankGrid.innerHTML = '';
+  sorted.forEach((op, i) => {
+    const pct = calcPct(op, week) ?? 0;
+    const color = pct===100?'#1baf7a':pct>=60?'#2a78d6':'#e34948';
+    const pctColor = pct===100?'#0f6e56':pct>=60?'#185fa5':'#a32d2d';
+    rankGrid.innerHTML += `<div class="rank-card">
+      <div class="rank-num">#${i+1}</div>
+      <div class="rank-bar-wrap">
+        <div class="rank-op">${op.replace('SOC-','')}</div>
+        <div class="rank-bar-bg"><div class="rank-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      </div>
+      <div class="rank-pct" style="color:${pctColor}">${pct}%</div>
+    </div>`;
+  });
+
+  renderPending(week);
+}
+
+document.getElementById('weekSel').addEventListener('change', e => render(e.target.value));
+document.getElementById('opFilter').addEventListener('change', () => renderPending(document.getElementById('weekSel').value));
+render('W26');
+</script>
+</body>
+</html>
