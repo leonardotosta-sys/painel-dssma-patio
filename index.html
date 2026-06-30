@@ -111,11 +111,8 @@ footer{margin-top:2rem;font-size:11px;color:#898781;text-align:center}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
-// ============================================================
-// COLE AQUI A URL DO SEU APPS SCRIPT (termina em /exec)
-// ============================================================
+
 const APPS_SCRIPT_URL = 'https://script.google.com/a/macros/shopee.com/s/AKfycbwzyRVktnWDo2Jbel9K_51Js6VxUWovkc-gI9_Zh-wuvWEis1xlU-NQqsKKcVexSteChQ/exec';
-// ============================================================
 
 const DEFAULT_OPS = {
   'SOC-RJ2':{leaders:['Luciana Lopes da Silva Oliveira','Luiz Antonio de Lima Rosa Júnior','Claudio Rogério Moreira dos Santos'],weeks:{W13:{s:['R','R','R']},W14:{s:['R','R','R']},W15:{s:['R','R','R']},W16:{s:['R','R','R']},W17:{s:['NR','R','R']},W18:{s:['R','R','R']},W19:{s:['R','R','R']},W20:{s:['R','R','R']},W21:{s:['R','R','R']},W22:{s:['R','R','R']},W23:{s:['R','R','R']},W24:{s:['R','R','R']},W25:{s:['R','R','R']},W26:{s:['R','R','R']}}},
@@ -136,6 +133,32 @@ const DEFAULT_OPS = {
 let OPS = JSON.parse(JSON.stringify(DEFAULT_OPS));
 const OP_SHEETS = ['RJ2','SP2','SP5','SP6','SP7','SP8','SP25','BA2','PE2','GO2','PR1','RJ1','ES1','RJ4'];
 
+async function loadData() {
+  const st = document.getElementById('uploadStatus');
+  st.className = 'upload-status';
+  st.textContent = 'Carregando…';
+  try {
+    const resp = await fetch(APPS_SCRIPT_URL, { credentials: 'include' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const newOps = await resp.json();
+    const loaded = Object.keys(newOps).length;
+    if (!loaded) throw new Error('Nenhuma operação encontrada');
+    OPS = newOps;
+    const allW = getAllWeeks();
+    const sel = document.getElementById('weekSel');
+    sel.innerHTML = '';
+    allW.forEach(w => { const o = document.createElement('option'); o.value = w; o.textContent = w; sel.appendChild(o); });
+    sel.value = allW[allW.length - 1];
+    updateOpFilter();
+    render(sel.value);
+    st.className = 'upload-status ok';
+    st.textContent = '✓ Atualizado! ' + loaded + ' operações carregadas.';
+  } catch(err) {
+    st.className = 'upload-status err';
+    st.textContent = 'Erro ao carregar: ' + err.message;
+  }
+}
+
 function parseStatus(v) {
   if (v === null || v === undefined) return null;
   if (typeof v === 'string') {
@@ -145,41 +168,6 @@ function parseStatus(v) {
     if (vt === '-') return '-';
   }
   return null;
-}
-
-async function loadData() {
-  const st = document.getElementById('uploadStatus');
-  st.className = 'upload-status';
-  st.textContent = 'Carregando…';
-
-  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'COLE_SUA_URL_AQUI') {
-    st.className = 'upload-status err';
-    st.textContent = 'Configure a URL do Apps Script no código.';
-    return;
-  }
-
-  try {
-    const resp = await fetch(APPS_SCRIPT_URL, { credentials: 'include' });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const newOps = await resp.json();
-    const loaded = Object.keys(newOps).length;
-    if (loaded === 0) throw new Error('Nenhuma operação encontrada');
-    OPS = newOps;
-
-    const allW = getAllWeeks();
-    const sel = document.getElementById('weekSel');
-    sel.innerHTML = '';
-    allW.forEach(w => { const o = document.createElement('option'); o.value = w; o.textContent = w; sel.appendChild(o); });
-    sel.value = allW[allW.length - 1];
-    updateOpFilter();
-    render(sel.value);
-
-    st.className = 'upload-status ok';
-    st.textContent = '✓ Atualizado! ' + loaded + ' operações carregadas.';
-  } catch(err) {
-    st.className = 'upload-status err';
-    st.textContent = 'Erro: ' + err.message;
-  }
 }
 
 function isActive(s) { return s !== '-' && s !== null; }
@@ -208,18 +196,13 @@ function updateOpFilter() {
   Object.keys(OPS).forEach(op => { const o = document.createElement('option'); o.value = op; o.textContent = op.replace('SOC-',''); opFilter.appendChild(o); });
 }
 
-// Init com dados default, depois carrega da API automaticamente
+// Init com dados default
 const allWeeksInit = getAllWeeks();
 const selInit = document.getElementById('weekSel');
 allWeeksInit.forEach(w => { const o = document.createElement('option'); o.value = w; o.textContent = w; selInit.appendChild(o); });
 selInit.value = 'W26';
 updateOpFilter();
-render('W26');
 
-// Carrega dados atualizados automaticamente ao abrir a página
-loadData();
-
-let chart = null;
 let currentFilter = 'todos';
 function setFilter(f) {
   currentFilter = f;
@@ -243,7 +226,7 @@ function renderPending(week) {
       rows.push({op, leader, done});
     });
   });
-  if (rows.length === 0) { body.innerHTML = `<tr><td colspan="3" class="no-rows">Nenhum registro para esse filtro.</td></tr>`; return; }
+  if (!rows.length) { body.innerHTML = '<tr><td colspan="3" class="no-rows">Nenhum registro para esse filtro.</td></tr>'; return; }
   body.innerHTML = rows.map(r => `<tr>
     <td><span class="op-badge">${r.op.replace('SOC-','')}</span></td>
     <td>${r.leader}</td>
@@ -275,6 +258,7 @@ Chart.register({
   }
 });
 
+let chart = null;
 
 function render(week) {
   const activeOps = Object.keys(OPS).filter(op => {
@@ -304,7 +288,7 @@ function render(week) {
     data: {labels, datasets: [{label:'Realização (%)', data:values, backgroundColor:colors, borderRadius:4, borderSkipped:false}]},
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: {legend:{display:false}, tooltip:{callbacks:{label:ctx=>ctx.raw+'%'}}},
+      plugins: {legend:{display:false}, tooltip:{callbacks:{label:c=>c.raw+'%'}}},
       scales: {
         y: {min:0, max:100, ticks:{callback:v=>v+'%',color:'#898781',font:{size:11}}, grid:{color:'rgba(136,135,128,0.15)'}, border:{display:false}},
         x: {ticks:{color:'#898781',font:{size:11},autoSkip:false}, grid:{display:false}, border:{display:false}}
@@ -333,7 +317,13 @@ function render(week) {
 
 document.getElementById('weekSel').addEventListener('change', e => render(e.target.value));
 document.getElementById('opFilter').addEventListener('change', () => renderPending(document.getElementById('weekSel').value));
+
+// Renderiza com dados padrão imediatamente
 render('W26');
+
+// Depois tenta carregar dados reais da planilha
+loadData();
+
 </script>
 </body>
 </html>
